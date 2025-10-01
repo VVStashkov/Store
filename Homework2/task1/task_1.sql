@@ -1,17 +1,17 @@
 CREATE SCHEMA warehouse;
 
 CREATE TABLE warehouse.product_category (
-    category_id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE warehouse.supplier (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     organization_name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE warehouse.manager (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     last_name VARCHAR(50) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     patronymic VARCHAR(50),
@@ -20,7 +20,7 @@ CREATE TABLE warehouse.manager (
 );
 
 CREATE TABLE warehouse.warehouse (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     address VARCHAR(200) NOT NULL,
     district VARCHAR(100),
     manager_id INT,
@@ -28,14 +28,14 @@ CREATE TABLE warehouse.warehouse (
 );
 
 CREATE TABLE warehouse.customer (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     last_name VARCHAR(50) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     patronymic VARCHAR(50)
 );
 
 CREATE TABLE warehouse.employee (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     warehouse_id INT,
     last_name VARCHAR(50) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
@@ -46,20 +46,20 @@ CREATE TABLE warehouse.employee (
 );
 
 CREATE TABLE warehouse.product (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     category_id INT,
     unit_price DECIMAL(10,2) NOT NULL,
     unit_of_measure VARCHAR(20),
     supplier_id INT,
     warehouse_id INT,
     stock_quantity INT DEFAULT 0,
-    FOREIGN KEY (category_id) REFERENCES warehouse.product_category(category_id),
+    FOREIGN KEY (category_id) REFERENCES warehouse.product_category(id),
     FOREIGN KEY (supplier_id) REFERENCES warehouse.supplier(id),
     FOREIGN KEY (warehouse_id) REFERENCES warehouse.warehouse(id)
 );
 
 CREATE TABLE warehouse.customer_order (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     customer_id INT,
     employee_id INT,
     warehouse_id INT,
@@ -69,7 +69,6 @@ CREATE TABLE warehouse.customer_order (
 );
 
 CREATE TABLE warehouse.order_item (
-    id INT PRIMARY KEY,
     product_id INT,
     order_id INT,
     quantity INT NOT NULL CHECK (quantity > 0),
