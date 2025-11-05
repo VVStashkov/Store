@@ -1,24 +1,27 @@
--- SELECT
+-- подзапрос в SELECT
 
--- 1.1) Получить полную информацию всех менеджеров
+-- 1.1) Информация о товаре с количеством заказов
+
 SELECT 
-    last_name,
-    first_name,
-    patronymic,
-    gender,
-    birth_date
-FROM warehouse.manager;
+    name AS product_name,
+    unit_price / 100 AS price_rub,
+    (SELECT COUNT(*) 
+     FROM warehouse.order_item oi 
+     WHERE oi.product_id = pc.id) AS order_count
+FROM warehouse.product_catalog pc;
 
 ![Logo](1.png "Company Logo")
 
 
--- 1.2) Получить ФИО всех работников
+-- 1.2) Клиенты с общей суммой их заказов
 
 SELECT 
-    last_name,
-    first_name,
-    patronymic
-FROM warehouse.employee;
+    last_name || ' ' || first_name AS customer_name,
+    (SELECT SUM(amount) / 100 
+     FROM warehouse.payment p 
+     JOIN warehouse.customer_order co ON p.order_id = co.id 
+     WHERE co.customer_id = c.id AND p.status = 2) AS total_spent_rub
+FROM warehouse.customer c;
 
 ![Logo](2.png "Company Logo")
 
@@ -29,75 +32,153 @@ FROM warehouse.product_catalog;
 
 ![Logo](3.png "Company Logo")
 
--- FROM
+-- подзапрос в FROM
 
--- 2.1) Получить имена товаров и названия их категорий
-SELECT pc.name AS product_name, pc2.name AS category_name
-FROM warehouse.product_catalog pc
-JOIN warehouse.product_category pc2 ON pc.category_id = pc2.id;
+-- 2.1) Топ-5 самых популярных товаров
+
+SELECT 
+    product_name,
+    total_ordered
+FROM (
+    SELECT 
+        p.name AS product_name,
+        SUM(oi.quantity) AS total_ordered
+    FROM warehouse.order_item oi
+    JOIN warehouse.product_catalog p ON oi.product_id = p.id
+    GROUP BY p.id, p.name
+) AS popular_products
+ORDER BY total_ordered DESC
+LIMIT 5;
 
 ![Logo](4.png "Company Logo")
 
--- 2.2) Получить адреса складов и ФИО их менеджеров
-SELECT w.address, m.last_name, m.first_name, m.patronymic
-FROM warehouse.warehouse w
-LEFT JOIN warehouse.manager m ON w.manager_id = m.id;
+-- 2.2) Клиенты с количеством заказов больше 1
+
+SELECT 
+    customer_name,
+    order_count
+FROM (
+    SELECT 
+        c.last_name || ' ' || c.first_name AS customer_name,
+        COUNT(co.id) AS order_count
+    FROM warehouse.customer c
+    LEFT JOIN warehouse.customer_order co ON c.id = co.customer_id
+    GROUP BY c.id, c.last_name, c.first_name
+) AS customer_orders
+WHERE order_count > 1;
 
 ![Logo](5.png "Company Logo")
 
--- 2.3) Получить все заказы с email клиентов, которые их сделали
-SELECT co.id AS order_id, c.email
-FROM warehouse.customer_order co
-INNER JOIN warehouse.customer c ON co.customer_id = c.id
+-- 2.3) Средняя цена по категориям с фильтрацией
+
+SELECT 
+    category_name,
+    avg_price_rub
+FROM (
+    SELECT 
+        pc.name AS category_name,
+        ROUND(AVG(p.unit_price) / 100, 2) AS avg_price_rub
+    FROM warehouse.product_catalog p
+    JOIN warehouse.product_category pc ON p.category_id = pc.id
+    GROUP BY pc.id, pc.name
+) AS category_prices
+WHERE avg_price_rub > 50;
 
 ![Logo](6.png "Company Logo")
 
 -- WHERE
 
--- 3.1) Найти всех сотрудников мужского пола
-SELECT *
-FROM warehouse.employee
-WHERE gender = 'M';
+-- 3.1)  Товары, которые есть на складе №1
+
+SELECT 
+    name AS product_name
+FROM warehouse.product_catalog
+WHERE id IN (
+    SELECT product_id 
+    FROM warehouse.product_inventory 
+    WHERE warehouse_id = 1 AND stock_quantity > 0
+);
 
 ![Logo](7.png "Company Logo")
 
--- 3.2) Найти товары с ценой выше 100 р
-SELECT *
-FROM warehouse.product_catalog
-WHERE unit_price > 10000;
+-- 3.2) Клиенты, которые делали заказы в этом месяце
+
+SELECT 
+    last_name || ' ' || first_name AS customer_name
+FROM warehouse.customer
+WHERE id IN (
+    SELECT DISTINCT customer_id
+    FROM warehouse.customer_order co
+    JOIN warehouse.payment p ON co.id = p.order_id
+    WHERE EXTRACT(MONTH FROM p.payment_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+);
 
 ![Logo](8.png "Company Logo")
 
--- 3.3) Найти платежи за 2024
-SELECT *
-FROM warehouse.payment
-WHERE EXTRACT(YEAR FROM payment_date) = 2024;
+-- 3.3) Сотрудники, которые обрабатывали заказы
+
+SELECT 
+    last_name || ' ' || first_name AS employee_name
+FROM warehouse.employee
+WHERE id IN (
+    SELECT DISTINCT employee_id 
+    FROM warehouse.customer_order 
+    WHERE employee_id IS NOT NULL
+);
 
 ![Logo](9.png "Company Logo")
 
 -- HAVING
 
--- 4.1) Найти категории товаров, у которых средняя цена больше 1000
-SELECT category_id, AVG(unit_price) AS avg_price
-FROM warehouse.product_catalog
-GROUP BY category_id
-HAVING AVG(unit_price) > 10000;
+-- 4.1) Категории, где средняя цена товаров выше средней цены всех товаров
+
+SELECT 
+    pc.name AS category_name,
+    ROUND(AVG(p.unit_price) / 100, 2) AS avg_price_rub
+FROM warehouse.product_catalog p
+JOIN warehouse.product_category pc ON p.category_id = pc.id
+GROUP BY pc.id, pc.name
+HAVING AVG(p.unit_price) > (
+    SELECT AVG(unit_price) 
+    FROM warehouse.product_catalog
+);
 
 ![Logo](10.png "Company Logo")
 
--- 4.2) Найти склады, на которых хранится более 2 разных товаров
-SELECT warehouse_id, COUNT(product_id) AS unique_products
-FROM warehouse.product_inventory
-GROUP BY warehouse_id
-HAVING COUNT(product_id) > 2;
+-- 4.2) Клиенты, у которых общая сумма заказов больше средней суммы заказов всех клиентов
+
+SELECT 
+    c.last_name || ' ' || c.first_name AS customer_name,
+    SUM(p.amount) / 100 AS total_spent_rub
+FROM warehouse.customer c
+JOIN warehouse.customer_order co ON c.id = co.customer_id
+JOIN warehouse.payment p ON co.id = p.order_id
+WHERE p.status = 2
+GROUP BY c.id, customer_name
+HAVING SUM(p.amount) > (
+    SELECT AVG(amount) 
+    FROM warehouse.payment
+    where status = 2
+);
 
 ![Logo](11.png "Company Logo")
 
--- 4.3) Найти клиентов, сделавших хотя бы 2 заказа
-SELECT customer_id, COUNT(id) AS order_count
-FROM warehouse.customer_order
-GROUP BY customer_id
-HAVING COUNT(id) >= 2;
+-- 4.3) Склады, где количество разных товаров больше чем на складе с минимальным ассортиментом
+
+SELECT 
+    w.address AS warehouse_address,
+    COUNT(pi.product_id) AS product_count
+FROM warehouse.warehouse w
+JOIN warehouse.product_inventory pi ON w.id = pi.warehouse_id
+GROUP BY w.id, w.address
+HAVING COUNT(pi.product_id) > (
+    SELECT MIN(product_count)
+    FROM (
+        SELECT COUNT(product_id) as product_count
+        FROM warehouse.product_inventory
+        GROUP BY warehouse_id
+    ) AS warehouse_counts
+);
 
 ![Logo](12.png "Company Logo")
 
