@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: practice_db
+    environment:
+      POSTGRES_DB: Warehouse_DB
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/migrations:/migrations
+      - ./db/seed:/seed
+    command: ["postgres", "-c", "log_statement=all"]
+
+  flyway:
+    image: flyway/flyway:10
+    container_name: practice_flyway
+    command: -url=jdbc:postgresql://postgres:5432/Warehouse_DB -user=admin -password=admin_pass migrate
+    volumes:
+      - ./db/migrations:/flyway/sql
+    depends_on:
+      - postgres
+
+volumes:
+  pg_data:
