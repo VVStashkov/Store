@@ -29,23 +29,23 @@ public class Generator {
 
         try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
             conn.setAutoCommit(false);
-
-            // 1. Очистка всех таблиц (включая справочные)
-            System.out.println("Truncating all tables...");
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("TRUNCATE " +
-                        "warehouse.order_item, " +
-                        "warehouse.customer_order, " +
-                        "warehouse.product_catalog, " +
-                        "warehouse.customer, " +
-                        "warehouse.employee, " +
-                        "warehouse.warehouse, " +
-                        "warehouse.manager, " +
-                        "warehouse.payment_status, " +
-                        "warehouse.product_category, " +
-                        "warehouse.supplier " +
-                        "RESTART IDENTITY CASCADE");
-            }
+//
+//            // 1. Очистка всех таблиц (включая справочные)
+//            System.out.println("Truncating all tables...");
+//            try (Statement stmt = conn.createStatement()) {
+//                stmt.execute("TRUNCATE " +
+//                        "warehouse.order_item, " +
+//                        "warehouse.customer_order, " +
+//                        "warehouse.product_catalog, " +
+//                        "warehouse.customer, " +
+//                        "warehouse.employee, " +
+//                        "warehouse.warehouse, " +
+//                        "warehouse.manager, " +
+//                        "warehouse.payment_status, " +
+//                        "warehouse.product_category, " +
+//                        "warehouse.supplier " +
+//                        "RESTART IDENTITY CASCADE");
+//            }
 
             // 2. Заполнение справочных таблиц с новыми полями
             System.out.println("Inserting reference data...");
