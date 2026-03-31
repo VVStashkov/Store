@@ -1,0 +1,1 @@
+/usr/lib/postgresql/15/bin/postgres "-c" "log_statement=all" "-c" "hot_standby=on" "-c" "primary_conninfo=host=postgres port=5432 user=replicator password=rep_pass" "-c" "primary_slot_name=replica2_slot"
