@@ -29,7 +29,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin_pass
     ports:
-      - "5434:5432"
+      - "5437:5432"
     volumes:
       - ./replica1_data:/var/lib/postgresql/data
     depends_on:
@@ -74,6 +74,44 @@ services:
       - ./logical_subscriber_data:/var/lib/postgresql/data
     depends_on:
       - postgres
+  shard1:
+    image: postgres:15
+    container_name: postgres_shard1
+    environment:
+      POSTGRES_DB: Warehouse_DB
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pass
+    ports:
+      - "5438:5432"
+    volumes:
+      - ./shard1_data:/var/lib/postgresql/data
+    command: postgres -c log_statement=all
+
+  shard2:
+    image: postgres:15
+    container_name: postgres_shard2
+    environment:
+      POSTGRES_DB: Warehouse_DB
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pass
+    ports:
+      - "5439:5432"
+    volumes:
+      - ./shard2_data:/var/lib/postgresql/data
+    command: postgres -c log_statement=all
+
+  shard_router:
+    image: postgres:15
+    container_name: postgres_shard_router
+    environment:
+      POSTGRES_DB: Warehouse_DB
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_pass
+    ports:
+      - "5440:5432"
+    volumes:
+      - ./shard_router_data:/var/lib/postgresql/data
+    command: postgres -c log_statement=all
   flyway:
     image: flyway/flyway:10
     container_name: practice_flyway
